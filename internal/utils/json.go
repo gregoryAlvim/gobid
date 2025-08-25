@@ -1,4 +1,4 @@
-package jsonutils
+package utils
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ func EncodeJson[T any](w http.ResponseWriter, r *http.Request, statusCode int, d
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		return fmt.Errorf("falied to encode json %w", err)
+		return fmt.Errorf("failed to encode json %w", err)
 	}
 
 	return nil
@@ -23,7 +23,7 @@ func DecodeValidJson[T validator.Validator](r *http.Request) (T, map[string]stri
 	var data T
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		return data, nil, fmt.Errorf("decode json falied %w", err)
+		return data, nil, fmt.Errorf("decode json failed %w", err)
 	}
 
 	if problems := data.Valid(r.Context()); len(problems) > 0 {
@@ -37,7 +37,7 @@ func DecodeJson[T any](r *http.Request) (T, error) {
 	var data T
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		return data, fmt.Errorf("decode json falied %w", err)
+		return data, fmt.Errorf("decode json failed %w", err)
 	}
 
 	return data, nil
