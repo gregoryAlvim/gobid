@@ -1,0 +1,13 @@
+# Create user
+# @name createUser
+POST http://localhost:3080/api/v1/users/signup
+Content-Type: application/json
+
+{
+  "user_name": "Gregory Alvim",
+  "email": "greg@example.com",
+  "password": "",
+  "bio": "go is nice"
+}
+
+###
