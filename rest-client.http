@@ -6,8 +6,35 @@ Content-Type: application/json
 {
   "user_name": "Gregory Alvim",
   "email": "greg@example.com",
-  "password": "",
+  "password": "12345678",
   "bio": "go is nice"
 }
+
+###
+
+# Logout user
+# @name logoutUser
+POST http://localhost:3080/api/v1/users/logout
+Content-Type: application/json
+X-CSRF-Token: HQSmGlQeOm51G5gaW/NI9IIevdKthAXjRm+z3Aesx9CVYEP3R3B2KavThw14i3dOrBfXMTCddEQi8z2Fpi+ELA==
+
+###
+
+# Login user
+# @name loginUser
+POST http://localhost:3080/api/v1/users/login
+Content-Type: application/json
+
+{
+  "email": "greg@example.com",
+  "password": "12345678"
+}
+
+###
+
+# Get CSRF token
+# @name getCSRFToken
+GET http://localhost:3080/api/v1/csrf-token
+Content-Type: application/json
 
 ###
