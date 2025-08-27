@@ -38,3 +38,36 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (u
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getProductById = `-- name: GetProductById :one
+SELECT id, seller_id, product_name, description, base_price, auction_end, created_at, updated_at 
+FROM products 
+WHERE id = $1
+`
+
+type GetProductByIdRow struct {
+	ID          uuid.UUID `json:"id"`
+	SellerID    uuid.UUID `json:"seller_id"`
+	ProductName string    `json:"product_name"`
+	Description string    `json:"description"`
+	BasePrice   float64   `json:"base_price"`
+	AuctionEnd  time.Time `json:"auction_end"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetProductById(ctx context.Context, id uuid.UUID) (GetProductByIdRow, error) {
+	row := q.db.QueryRow(ctx, getProductById, id)
+	var i GetProductByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.SellerID,
+		&i.ProductName,
+		&i.Description,
+		&i.BasePrice,
+		&i.AuctionEnd,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
