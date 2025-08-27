@@ -38,3 +38,15 @@ GET http://localhost:3080/api/v1/csrf-token
 Content-Type: application/json
 
 ###
+
+# Create product
+# @name createProduct
+POST http://localhost:3080/api/v1/products
+Content-Type: application/json
+
+{
+  "product_name": "Sample Product",
+  "description": "This is a sample product description",
+  "base_price": 99.88,
+  "auction_end": "2025-11-01T00:00:00Z"
+}
