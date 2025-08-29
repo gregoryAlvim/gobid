@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/gregoryAlvim/gobid/internal/services"
 	"github.com/gregoryAlvim/gobid/internal/usecase/product"
 	"github.com/gregoryAlvim/gobid/internal/utils"
 )
@@ -21,11 +23,20 @@ func (api *Api) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := api.ProductService.CreateProduct(r.Context(), userID, data.ProductName, data.Description, data.BasePrice, data.AuctionEnd)
+	productId, err := api.ProductService.CreateProduct(r.Context(), userID, data.ProductName, data.Description, data.BasePrice, data.AuctionEnd)
 	if err != nil {
 		utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"error": "failed to create product auction, try again later"})
 		return
 	}
 
-	utils.EncodeJson(w, r, http.StatusCreated, map[string]any{"product_id": id.String(), "message": "product auction created successfully"})
+	ctx, _ := context.WithDeadline(context.Background(), data.AuctionEnd)
+	auctionRoom := services.NewAuctionRoom(ctx, productId, api.BidsService)
+
+	// go auctionRoom.Run()
+
+	api.Auctionlobby.Lock()
+	api.Auctionlobby.Rooms[productId] = auctionRoom
+	api.Auctionlobby.Unlock()
+
+	utils.EncodeJson(w, r, http.StatusCreated, map[string]any{"product_id": productId.String(), "message": "Auction has started with success"})
 }
