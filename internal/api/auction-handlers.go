@@ -11,7 +11,7 @@ import (
 )
 
 func (api *Api) handleSubscribeUserToAuction(w http.ResponseWriter, r *http.Request) {
-	rawProductID := chi.URLParam(r, "Protect_id")
+	rawProductID := chi.URLParam(r, "product_id")
 
 	productId, err := uuid.Parse(rawProductID)
 	if err != nil {
@@ -36,9 +36,24 @@ func (api *Api) handleSubscribeUserToAuction(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	conn, err := api.WsUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		_ = utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "could not upgrade connection to websocket protocol"})
+	api.AuctionLobby.Lock()
+	room, ok := api.AuctionLobby.Rooms[productId]
+	api.AuctionLobby.Unlock()
+
+	if !ok {
+		_ = utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "the auction for this product has ended or does not exist"})
 		return
 	}
+
+	conn, err := api.WsUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		_ = utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "could not upgrade connection to websocket protocol"})
+		return
+	}
+
+	client := services.NewClient(room, conn, userId)
+
+	room.Register <- client
+	go client.ReadEventLoop()
+	go client.WriteEventLoop()
 }

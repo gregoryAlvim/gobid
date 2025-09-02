@@ -30,13 +30,15 @@ func (api *Api) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, _ := context.WithDeadline(context.Background(), data.AuctionEnd)
+	// defer cancel()
+
 	auctionRoom := services.NewAuctionRoom(ctx, productId, api.BidsService)
 
-	// go auctionRoom.Run()
+	go auctionRoom.Run()
 
-	api.Auctionlobby.Lock()
-	api.Auctionlobby.Rooms[productId] = auctionRoom
-	api.Auctionlobby.Unlock()
+	api.AuctionLobby.Lock()
+	api.AuctionLobby.Rooms[productId] = auctionRoom
+	api.AuctionLobby.Unlock()
 
 	utils.EncodeJson(w, r, http.StatusCreated, map[string]any{"product_id": productId.String(), "message": "Auction has started with success"})
 }

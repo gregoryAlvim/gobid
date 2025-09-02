@@ -14,5 +14,5 @@ type Api struct {
 	BidsService    services.BidsService
 	Sessions       *scs.SessionManager
 	WsUpgrader     websocket.Upgrader
-	Auctionlobby   services.Auctionlobby
+	AuctionLobby   services.AuctionLobby
 }
