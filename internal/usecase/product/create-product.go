@@ -26,7 +26,7 @@ func (req CreateProductReq) Valid(ctx context.Context) validator.Evaluator {
 
 	eval.CheckField(req.BasePrice > 0, "base_price", "this field cannot be zero")
 
-	eval.CheckField(req.AuctionEnd.Sub(time.Now()) >= minAuctionDuration, "auction_end", "must be at least two hours duration")
+	eval.CheckField(req.AuctionEnd.Sub(time.Now().UTC()) >= minAuctionDuration, "auction_end", "must be at least two hours duration")
 
 	return eval
 }

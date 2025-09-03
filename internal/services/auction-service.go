@@ -18,7 +18,7 @@ const (
 	PlaceBid MessageKind = iota
 
 	// Success
-	SuccessfyllyPlacedBid
+	SuccessfullyPlacedBid
 
 	// Errors
 	FailedToPlaceBid
@@ -69,34 +69,26 @@ func (ar *AuctionRoom) registerClient(c *Client) {
 }
 
 func (ar *AuctionRoom) unregisterClient(c *Client) {
-	slog.Info("user desconected", "client", c)
+	slog.Info("user disconnected", "client", c)
 	delete(ar.Clients, c.UserId)
 }
 
 func (ar *AuctionRoom) broadcastMessage(m Message) {
-	slog.Info("new message recieved", "room_id", ar.Id, "message", m, "user_id", m.UserID)
+	slog.Info("new message received", "room_id", ar.Id, "message", m, "user_id", m.UserID)
 	switch m.Kind {
 	case PlaceBid:
 		bid, err := ar.BidsService.PlaceBid(ar.Context, ar.Id, m.UserID, m.Amount)
-		client, ok := ar.Clients[m.UserID]
-
 		if err != nil {
 			if errors.Is(err, ErrBidTooLow) {
-				if ok {
-					client.Send <- Message{
-						Kind:    FailedToPlaceBid,
-						Message: ErrBidTooLow.Error(), UserID: m.UserID,
-					}
+				if client, ok := ar.Clients[m.UserID]; ok {
+					client.Send <- Message{Kind: FailedToPlaceBid, Message: ErrBidTooLow.Error(), UserID: m.UserID}
 				}
+				return
 			}
-
-			return
 		}
 
-		client.Send <- Message{
-			Kind:    SuccessfyllyPlacedBid,
-			Message: "your bid was placed with success",
-			UserID:  m.UserID,
+		if client, ok := ar.Clients[m.UserID]; ok {
+			client.Send <- Message{Kind: SuccessfullyPlacedBid, Message: "Your bid was Successfully placed.", UserID: m.UserID}
 		}
 
 		for id, client := range ar.Clients {
@@ -174,8 +166,8 @@ func NewClient(room *AuctionRoom, conn *websocket.Conn, userId uuid.UUID) *Clien
 const (
 	maxMessageSize = 512
 	readDeadline   = 60 * time.Second
-	pingPeriod     = (readDeadline * 9) / 10
 	writeWait      = 10 * time.Second
+	pingPeriod     = (readDeadline * 9) / 10
 )
 
 func (c *Client) ReadEventLoop() {
@@ -200,14 +192,11 @@ func (c *Client) ReadEventLoop() {
 				return
 			}
 
-			c.Room.Broadcast <- Message{
-				Kind:    InvalidJson,
-				Message: "should be a valid json",
-				UserID:  m.UserID,
-			}
+			slog.Warn("invalid json received from client", "user_id", c.UserId, "error", err)
 			continue
 		}
 
+		m.UserID = c.UserId
 		c.Room.Broadcast <- m
 	}
 }
@@ -231,7 +220,6 @@ func (c *Client) WriteEventLoop() {
 			}
 
 			if message.Kind == AuctionFinished {
-				close(c.Send)
 				return
 			}
 

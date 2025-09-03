@@ -67,11 +67,7 @@ func (us *UserService) AuthenticateUser(ctx context.Context, email, password str
 
 	err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password))
 	if err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return uuid.UUID{}, bcrypt.ErrMismatchedHashAndPassword
-		}
-
-		return uuid.UUID{}, err
+		return uuid.UUID{}, ErrInvalidCredentials
 	}
 
 	return user.ID, nil

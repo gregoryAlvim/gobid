@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/gregoryAlvim/gobid/internal/store/pgstore"
@@ -25,7 +26,16 @@ func NewBidsService(pool *pgxpool.Pool) BidsService {
 var ErrBidTooLow = errors.New("bid amount is too low")
 
 func (bs *BidsService) PlaceBid(ctx context.Context, product_id, bidder_id uuid.UUID, amount float64) (pgstore.Bid, error) {
-	product, err := bs.queries.GetProductById(ctx, product_id)
+	tx, err := bs.pool.Begin(ctx)
+	if err != nil {
+		return pgstore.Bid{}, err
+	}
+
+	defer tx.Rollback(ctx)
+
+	qtx := bs.queries.WithTx(tx)
+
+	product, err := qtx.GetProductById(ctx, product_id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return pgstore.Bid{}, errors.New("product not found")
@@ -34,15 +44,22 @@ func (bs *BidsService) PlaceBid(ctx context.Context, product_id, bidder_id uuid.
 		return pgstore.Bid{}, err
 	}
 
-	highestBid, err := bs.queries.GetHighestBidByProductId(ctx, product_id)
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return pgstore.Bid{}, err
-		}
+	highestBid, err := qtx.GetHighestBidByProductId(ctx, product_id)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return pgstore.Bid{}, err
 	}
 
-	if product.BasePrice >= amount || highestBid.BidAmount >= amount {
-		return pgstore.Bid{}, ErrBidTooLow
+	isFirstBid := errors.Is(err, pgx.ErrNoRows)
+	if isFirstBid {
+		if amount <= product.BasePrice {
+			slog.Info("BID REJECTED: Amount is less than or equal to base price.")
+			return pgstore.Bid{}, ErrBidTooLow
+		}
+	} else {
+		if amount <= highestBid.BidAmount {
+			slog.Info("BID REJECTED: Amount is less than or equal to highest bid.")
+			return pgstore.Bid{}, ErrBidTooLow
+		}
 	}
 
 	args := pgstore.CreateBidParams{
@@ -51,12 +68,14 @@ func (bs *BidsService) PlaceBid(ctx context.Context, product_id, bidder_id uuid.
 		BidAmount: amount,
 	}
 
-	highestBid, err = bs.queries.CreateBid(ctx, args)
+	newBid, err := qtx.CreateBid(ctx, args)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return pgstore.Bid{}, err
-		}
+		return pgstore.Bid{}, err
 	}
 
-	return highestBid, nil
+	if err := tx.Commit(ctx); err != nil {
+		return pgstore.Bid{}, err
+	}
+
+	return newBid, nil
 }

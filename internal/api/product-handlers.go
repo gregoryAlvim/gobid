@@ -13,13 +13,13 @@ import (
 func (api *Api) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	data, problems, err := utils.DecodeValidJson[product.CreateProductReq](r)
 	if err != nil {
-		_ = utils.EncodeJson(w, r, http.StatusUnprocessableEntity, problems)
+		utils.EncodeJson(w, r, http.StatusUnprocessableEntity, problems)
 		return
 	}
 
 	userID, ok := api.Sessions.Get(r.Context(), "AuthenticateUserId").(uuid.UUID)
 	if !ok {
-		_ = utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"error": "unexpected error, try again later"})
+		utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"error": "unexpected error, try again later"})
 		return
 	}
 
@@ -30,15 +30,12 @@ func (api *Api) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, _ := context.WithDeadline(context.Background(), data.AuctionEnd)
-	// defer cancel()
-
 	auctionRoom := services.NewAuctionRoom(ctx, productId, api.BidsService)
 
 	go auctionRoom.Run()
-
 	api.AuctionLobby.Lock()
 	api.AuctionLobby.Rooms[productId] = auctionRoom
 	api.AuctionLobby.Unlock()
 
-	utils.EncodeJson(w, r, http.StatusCreated, map[string]any{"product_id": productId.String(), "message": "Auction has started with success"})
+	utils.EncodeJson(w, r, http.StatusCreated, map[string]any{"message": "Auction has started with success", "product_id": productId.String()})
 }

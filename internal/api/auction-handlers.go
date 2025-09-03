@@ -15,24 +15,24 @@ func (api *Api) handleSubscribeUserToAuction(w http.ResponseWriter, r *http.Requ
 
 	productId, err := uuid.Parse(rawProductID)
 	if err != nil {
-		_ = utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "invalid product id - must be a valid uuid"})
+		utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "invalid product id, must be a valid uuid"})
 		return
 	}
 
 	_, err = api.ProductService.GetProductById(r.Context(), productId)
 	if err != nil {
 		if errors.Is(err, services.ErrProductNotFound) {
-			_ = utils.EncodeJson(w, r, http.StatusNotFound, map[string]any{"message": "no product found with the given id"})
+			utils.EncodeJson(w, r, http.StatusNotFound, map[string]any{"message": "no product found with the given id"})
 			return
 		}
 
-		_ = utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "unexpected error, try again later"})
+		utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "unexpected error, try again later"})
 		return
 	}
 
 	userId, ok := api.Sessions.Get(r.Context(), "AuthenticateUserId").(uuid.UUID)
 	if !ok {
-		_ = utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "unexpected error, try again later"})
+		utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "unexpected error, try again later"})
 		return
 	}
 
@@ -41,13 +41,13 @@ func (api *Api) handleSubscribeUserToAuction(w http.ResponseWriter, r *http.Requ
 	api.AuctionLobby.Unlock()
 
 	if !ok {
-		_ = utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "the auction for this product has ended or does not exist"})
+		utils.EncodeJson(w, r, http.StatusBadRequest, map[string]any{"message": "the auction for this product has ended or does not exist"})
 		return
 	}
 
 	conn, err := api.WsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		_ = utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "could not upgrade connection to websocket protocol"})
+		utils.EncodeJson(w, r, http.StatusInternalServerError, map[string]any{"message": "could not upgrade connection to websocket protocol"})
 		return
 	}
 
