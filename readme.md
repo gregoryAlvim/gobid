@@ -33,6 +33,7 @@ O projeto implementa as funcionalidades centrais de uma plataforma de leilões, 
 
 O projeto segue uma arquitetura em camadas para uma boa separação de responsabilidades:
 
+```text
 .
 ├── cmd/
 │   ├── api/            # Ponto de entrada da aplicação principal.
@@ -49,6 +50,7 @@ O projeto segue uma arquitetura em camadas para uma boa separação de responsab
 ├── .air.toml           # Configuração da ferramenta Air.
 ├── go.mod
 └── tern.conf           # Configuração da ferramenta Tern.
+```
 
 ## 🚀 Começando
 
@@ -97,11 +99,7 @@ Siga os passos abaixo para configurar e rodar o projeto localmente.
 6.  **Execute a Aplicação Principal:**
     * **Para desenvolvimento (com live reload):**
         ```bash
-        air
-        ```
-    * **Para executar manualmente:**
-        ```bash
-        go run ./cmd/api
+        air --build.cmd "go build -o ./bin/api ./cmd/api" --build.bin "./bin/api"
         ```
     O servidor estará rodando na porta `3080`.
 
